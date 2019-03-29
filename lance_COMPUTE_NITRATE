@@ -1,0 +1,15 @@
+#!/bin/sh
+
+WORKDATA="/data/GDAC/coriolis/"
+
+#for mission in `cat /data/GDAC/coriolis_nitrate.list`
+for mission in `cat /data/GDAC/coriolis_nitrate.list.1`
+do
+
+ls -1 ${WORKDATA}${mission}"/profiles/"BR*.nc > liste_all_B
+ 
+echo ${WORKDATA}${mission}"/"${mission}"_meta.nc" > liste_meta
+
+R --vanilla < COMPUTE_NITRATE.R
+
+done
