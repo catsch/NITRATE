@@ -63,14 +63,19 @@ index_AAA=str_detect(SAKAMOTO[[1]],"A=")
 index_BBB=str_detect(SAKAMOTO[[1]],"B=")
 index_CCC=str_detect(SAKAMOTO[[1]],"C=")
 index_DDD=str_detect(SAKAMOTO[[1]],"D=")
+index_EEE=str_detect(SAKAMOTO[[1]],"E=")
 index_OPO=str_detect(SAKAMOTO[[1]],"OPTICAL_WAVELENGTH_OFFSET=")
 
 AAA=as.numeric(str_replace(SAKAMOTO[[1]][index_AAA],"A=",""))
 BBB=as.numeric(str_replace(SAKAMOTO[[1]][index_BBB],"B=",""))
 CCC=as.numeric(str_replace(SAKAMOTO[[1]][index_CCC],"C=",""))
 DDD=as.numeric(str_replace(SAKAMOTO[[1]][index_DDD],"D=",""))
+EEE=as.numeric(str_replace(SAKAMOTO[[1]][index_EEE],"E=",""))
 wl=as.numeric(str_replace(SAKAMOTO[[1]][index_OPO],"OPTICAL_WAVELENGTH_OFFSET=",""))
 
+print(AAA)
+print(BBB)
+print(wl)
 ########################################
 ## PART 4 / OPTICAL_WAVELENGTH_UV
 ########################################
@@ -128,7 +133,7 @@ E_NITRATE=as.numeric(unlist(E_NITRATE_CHAR))
 # End of Coriolis PARSING
 ###################################################### 
 
-META_NITRATE=list("UV_INTENSITY_REF_NITRATE"=UV_INTENSITY_REF_NITRATE,"AAA"=AAA,"BBB"=BBB,"CCC"=CCC,"DDD"=DDD,"WL"=wl,"OPTICAL_WAVELENGTH_UV"=OPTICAL_WAVELENGTH_UV,"TEMP_CAL_NITRATE"=TEMP_CAL_NITRATE,"E_SWA_NITRATE"=E_SWA_NITRATE,"E_NITRATE"=E_NITRATE)
+META_NITRATE=list("UV_INTENSITY_REF_NITRATE"=UV_INTENSITY_REF_NITRATE,"AAA"=AAA,"BBB"=BBB,"CCC"=CCC,"DDD"=DDD,"EEE"=EEE,"WL"=wl,"OPTICAL_WAVELENGTH_UV"=OPTICAL_WAVELENGTH_UV,"TEMP_CAL_NITRATE"=TEMP_CAL_NITRATE,"E_SWA_NITRATE"=E_SWA_NITRATE,"E_NITRATE"=E_NITRATE)
 
 return(META_NITRATE)
 

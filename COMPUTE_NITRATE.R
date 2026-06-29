@@ -1,5 +1,7 @@
 library(ncdf4)
 library(stringr)
+require("oce")
+
 
 source("./read_BFILE_NITRATE.R")
 source("./read_META_NITRATE.R")
@@ -43,6 +45,10 @@ Tcal <- META$TEMP_CAL_NITRATE
 
 wl <- META$WL
 
+#### test on wl CATHERINE
+
+wl=210.
+
 ## Sakamoto Coefficients
  
 AAA <- META$AAA
@@ -53,12 +59,14 @@ CCC <- META$CCC
 
 DDD <- META$DDD
 
+EEE <- META$EEE
+
 ###########################################################
 #### End Reading the metafile name
 ###########################################################
 
 #### Creating the list of files for which we need to recompute  
-liste_to_do=read.table("liste_all_B",header=FALSE, as.is=TRUE)
+liste_to_do=read.table("liste_all",header=FALSE, as.is=TRUE)
 
 # List of the file to process
 LIST_nc=liste_to_do$V1
@@ -88,6 +96,15 @@ if ( length(index_nitrate)==0 ) {
     next
 }
 
+# Profile index of the NITRATE 
+i_prof_nitrate=index_nitrate[,2]
+
+# param index of the NITRATE
+i_param_nitrate=index_nitrate[,1]
+
+# read the file variable
+NITRATE_FILE=ncvar_get(filenc_B,"NITRATE")
+
 #### Read the NITRATE Variables necessary for the computation 
 
 NITRATE=read_BFILE_NITRATE(filenc_B,index_nitrate)
@@ -98,6 +115,8 @@ NITRATE=read_BFILE_NITRATE(filenc_B,index_nitrate)
 
 NITRATE_TCSS = rep(NA, length(NITRATE$PRES)) # NITRATE ESTIMATION with Multiple regression 
 
+NITRATE_cal=rep(NA, length(NITRATE$PRES)) # NITRATE ESTIMATION with Multiple regression 
+
 RMS_NITRATE_TCSS = rep(NA, length(NITRATE$PRES)) # RMS of the NITRATE ESTIMATION
 
 ASW240_NITRATE_TCSS = rep(NA, length(NITRATE$PRES)) # Absorbance a 240nm 
@@ -107,9 +126,17 @@ SATURATION_NITRATE = rep(FALSE, length(NITRATE$PRES)) # Saturation
 ##################################################
 #### Get CTD Data from the Netcdf C File
 ##################################################
-#### Catherine Warning D MODE !!!
+#### Both should be in the same mode  !!!
+file_in_C=str_replace(IDnc,"/B","/")
 
-file_in_C=str_replace(IDnc,"BR","R")
+
+
+
+
+# if B and C are not in the same mode
+if (!file.exists(file_in_C)) file_in_C=str_replace(file_in_C,"profiles/R","profiles/D")
+
+if (!file.exists(file_in_C)) file_in_C=str_replace(file_in_C,"profiles/D","profiles/R")
 
 print(file_in_C)
 
@@ -126,6 +153,8 @@ if ( length(which(!is.na(CTD$TEMP)))>2 ) {
 TEMP_NITRATE <- approx(CTD$PRES, CTD$TEMP, NITRATE$PRES+1.5, rule=2)$y
 
 PSAL_NITRATE  <- approx(CTD$PRES, CTD$PSAL, NITRATE$PRES+1.5, rule=2)$y
+
+swRho_NITRATE = swRho(PSAL_NITRATE, TEMP_NITRATE, NITRATE$PRES)
 
 } else {
 
@@ -146,17 +175,22 @@ for(p in 1:Ndepth){
 
 	pres=NITRATE$PRES[p]
 
+	rho=swRho_NITRATE[p]
+
 	I=NITRATE$UV_INTENSITY_NITRATE[1:N_wl , p] 
 	
 	Idark=NITRATE$UV_INTENSITY_DARK_NITRATE[p]
-
+	
 	A = -log10((I - Idark)/Iref)
 	
-	ASWTcal = (AAA + BBB*Tcal)*exp((CCC+DDD*Tcal)*(lambda-wl))
-	
-	ASWTis = (AAA + BBB*temp)*exp((CCC+DDD*temp)*(lambda-wl))
-	
-	ESWTis = (ESW*ASWTis)/ASWTcal
+		
+	#####   Temp Correction Catherine 2022
+
+	Tcorr=(AAA*(lambda-wl)^4+BBB*(lambda-wl)^3+CCC*(lambda-wl)^2+DDD*(lambda-wl)+EEE)*(temp-Tcal)
+
+	ESWTis = ESW*exp(Tcorr)
+
+#####   Fin de Temp Correction
 
 	ASW = ESWTis*sal
 
@@ -177,7 +211,11 @@ for(p in 1:Ndepth){
 	
 	NITRATE_TCSS[p] = lm3$coefficients[2] #Computed Value to check that it is correct with the actual value in the file
 
-	NITRATE[p] = sqrt( mean( (Aprim-fitted(lm3))^2) ) #Quality of the fit
+	NITRATE_cal[p]=NITRATE_TCSS[p]*1000/rho
+
+	NITRATE_FILE[p,i_prof_nitrate]=NITRATE_cal[p]
+
+	RMS_NITRATE_TCSS[p] = sqrt( mean( (Aprim-fitted(lm3))^2) ) #Quality of the fit
 
 	ASW240_NITRATE_TCSS[p]=ASW[N_wl] # absorbance at 240nm
 
@@ -185,7 +223,12 @@ for(p in 1:Ndepth){
 	
 }
 
-QC=QC_NITRATE(filenc_B,index_nitrate,NITRATE_TCSS,RMS_NITRATE_TCSS,ASW240_NITRATE_TCSS,SATURATION_NITRATE)
+#QC=QC_NITRATE(filenc_B,index_nitrate,NITRATE_TCSS,RMS_NITRATE_TCSS,ASW240_NITRATE_TCSS,SATURATION_NITRATE)
+
+## writing the recomputed value in the file  
+
+ncvar_put(filenc_B,"NITRATE",NITRATE_FILE)
+
 
 nc_close(filenc_B)
 
